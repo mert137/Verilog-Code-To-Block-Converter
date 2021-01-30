@@ -124,11 +124,10 @@ class Canvas(QtWidgets.QWidget):
                     self.myshow = InputDialog(i)
                     self.myshow.setWindowTitle("Add Port")
                     self.myshow.show()
-                # elif action == renameAction:
-                #     self.myshow = Rename()
-                #     self.myshow.setWindowTitle("Add Port")
-                #     self.myshow.show()
-                #     self.myshow.update(i)
+                elif action == renameAction:
+                    self.myshow = Rename(i)
+                    self.myshow.setWindowTitle("Rename Module")
+                    self.myshow.show()
 
         if empty_area == 1:
             contextMenu = QMenu(self)
@@ -196,6 +195,32 @@ class Module:
         self.Tri_In_H = int(self.Tri_In_F / 2)
 
 
+class Rename(QtWidgets.QWidget):
+    def __init__(self, module):
+        super(Rename, self).__init__()
+
+        self.module = module
+
+        self.nametextbox = QtWidgets.QLineEdit(self)
+        self.setButton = QPushButton('Okay', self)
+        self.setButton.clicked.connect(self.okay_button)
+
+        mainLayout = QGridLayout()
+        mainLayout.addWidget(self.nametextbox,   0, 0)
+        mainLayout.addWidget(self.setButton,     0, 1)
+
+        mainLayout.setRowMinimumHeight(2, 40)
+        mainLayout.setRowStretch(3, 1)
+        mainLayout.setColumnMinimumWidth(1, 200)
+        mainLayout.setSpacing(5)
+
+        self.setLayout(mainLayout)
+
+    def okay_button(self):
+        self.module.center_text = self.nametextbox.text()
+        self.close()
+
+
 class InputDialog(QtWidgets.QWidget):
     def __init__(self, module):
         super(InputDialog, self).__init__()
@@ -203,8 +228,8 @@ class InputDialog(QtWidgets.QWidget):
         self.port = Port()
         self.module = module
 
-        label1 = QLabel("Port Name")
-        label2 = QLabel("Signal Type")
+        label1 = QLabel("Signal Type")
+        label2 = QLabel("Port Name")
         label3 = QLabel("Signal Length")
 
         self.port_type = "input"
@@ -214,10 +239,7 @@ class InputDialog(QtWidgets.QWidget):
         self.combo_box.activated.connect(self.determine_type)   # adding action to combo box
 
         self.nametextbox = QtWidgets.QLineEdit(self)
-        #self.nametextbox.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-
         self.veclentextbox = QtWidgets.QLineEdit(self)
-        #self.veclentextbox.setFrameStyle(QFrame.Panel | QFrame.Sunken)
 
         self.setButton = QPushButton('Add', self)
         self.setButton.clicked.connect(self.add_port)
