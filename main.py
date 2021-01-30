@@ -102,6 +102,8 @@ class MainWindow(QWidget):
     def generate_block(self):
         my_text = self.textEdit.toPlainText()
         lines = my_text.splitlines()
+        if "" in lines:
+            lines.remove("")
         self.canvas.rect_list = []
         temp_rect_list = []
 
@@ -114,7 +116,7 @@ class MainWindow(QWidget):
             if x[0] == 'module' and x[2] == '(':
                 tempModule = Module()
                 tempModule.rect_begin = QtCore.QPoint(100, 100)
-                tempModule.rect_end = QtCore.QPoint(200, 200)
+                tempModule.rect_end = QtCore.QPoint(300, 300)
                 tempModule.center_text = x[1]
                 temp_rect_list.append(tempModule)
                 while 1:
@@ -145,14 +147,14 @@ class MainWindow(QWidget):
                 error = 1
                 break
 
-        if error == 1:
-            temp_rect_list = []
-
-        for i in temp_rect_list:
-            self.canvas.rect_list.append(i)
+        if error == 0:
+            for i in temp_rect_list:
+                self.canvas.rect_list.append(i)
+            #self.canvas.update_code()
 
     def generate_code(self):
-        pass
+        self.canvas.update_code()
+        self.textEdit.setText(self.canvas.code_string)
 
 
 if __name__ == '__main__':
