@@ -31,7 +31,7 @@ class Canvas(QtWidgets.QWidget):
             in_order = 0
             out_order = 0
             inout_order = 0
-            for i in r.port_list:
+            for i in r.left_port_list:
                 if i.port_type == 'input':
                     i.points = [r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H), int(r.Tri_In_F * in_order)),
                                 r.rect_begin + QtCore.QPoint(0, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)),
@@ -41,16 +41,6 @@ class Canvas(QtWidgets.QWidget):
                     # Write the port name
                     qp.drawText(r.rect_begin + QtCore.QPoint(5, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)), i.text)
                     in_order = in_order + 1
-
-                elif i.port_type == 'output':
-                    i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
-                                                           int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)),
-                                r.rect_end + QtCore.QPoint(1, int(-r.Tri_In_F - r.Tri_In_F * out_order)),
-                                r.rect_end + QtCore.QPoint(1, int(- r.Tri_In_F * out_order))]
-
-                    # Write the port name
-                    qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)), i.text)
-                    out_order = out_order + 1
 
                 elif i.port_type == 'inout':
                     i.points = [QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F - r.Tri_In_F * inout_order)),
@@ -64,6 +54,20 @@ class Canvas(QtWidgets.QWidget):
 
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
+
+            for i in r.right_port_list:
+                i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
+                                                       int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)),
+                            r.rect_end + QtCore.QPoint(1, int(-r.Tri_In_F - r.Tri_In_F * out_order)),
+                            r.rect_end + QtCore.QPoint(1, int(- r.Tri_In_F * out_order))]
+
+                # Write the port name
+                qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)), i.text)
+                out_order = out_order + 1
+
+                polygon = QPolygon(i.points)
+                qp.drawPolygon(polygon)
+
 
     # When mouse is pressed, the top left corner of the rectangle being drawn is saved
     def mousePressEvent(self, event):
@@ -115,19 +119,22 @@ class Canvas(QtWidgets.QWidget):
         tempClass = Port()
         tempClass.port_type = 'input'
         tempClass.text = text
-        module.port_list.append(tempClass)
+        module.left_port_list.append(tempClass)
+        module.update()
 
     def add_output(self, module, text):
         tempClass = Port()
         tempClass.port_type = 'output'
         tempClass.text = text
-        module.port_list.append(tempClass)
+        module.right_port_list.append(tempClass)
+        module.update()
 
     def add_inout(self, module, text):
         tempClass = Port()
         tempClass.port_type = 'inout'
         tempClass.text = text
-        module.port_list.append(tempClass)
+        module.left_port_list.append(tempClass)
+        module.update()
 
 
 class Port:
@@ -146,4 +153,18 @@ class Module:
         self.Tri_In_F = 2 * self.Tri_In_H
         self.center_text = ''               # Module name in the center of rectangle
         self.first_drawn = 0
-        self.port_list = []
+        self.left_port_list = []
+        self.right_port_list = []
+
+    def update(self):
+        temp_left = self.Tri_In_F
+        temp_right = self.Tri_In_F
+        if self.Tri_In_F * len(self.left_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.left_port_list) + 1))
+
+        if self.Tri_In_F * len(self.right_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.right_port_list) + 1))
+
+        self.Tri_In_F = min(temp_left, temp_right)
+        self.Tri_In_H = int(self.Tri_In_F / 2)
+
