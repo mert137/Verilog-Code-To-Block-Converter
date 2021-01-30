@@ -103,22 +103,53 @@ class MainWindow(QWidget):
         my_text = self.textEdit.toPlainText()
         lines = my_text.splitlines()
         self.canvas.rect_list = []
+        temp_rect_list = []
 
-        for line in lines:
-            x = [s.strip() for s in line.split(' ')]
-            if 'module' in x:
+        i = -1
+        error = 0
+
+        while i != len(lines) - 1:
+            i = i + 1
+            x = [s.strip() for s in lines[i].split(' ')]
+            if x[0] == 'module' and x[2] == '(':
                 tempModule = Module()
                 tempModule.rect_begin = QtCore.QPoint(100, 100)
                 tempModule.rect_end = QtCore.QPoint(200, 200)
                 tempModule.center_text = x[1]
-                self.canvas.rect_list.append(tempModule)
-            if 'input' in x:
-                self.canvas.add_input(self.canvas.rect_list[-1], x[1])
-            if 'output' in x:
-                self.canvas.add_output(self.canvas.rect_list[-1], x[1])
-            if 'inout' in x:
-                self.canvas.add_inout(self.canvas.rect_list[-1], x[1])
-            self.canvas.rect_list[-1].update()
+                temp_rect_list.append(tempModule)
+                while 1:
+                    i = i + 1
+                    x = [s.strip() for s in lines[i].split(' ')]
+                    if 'input' == x[0]:
+                        self.canvas.add_input(temp_rect_list[-1], x[1])
+                    elif 'output' == x[0]:
+                        self.canvas.add_output(temp_rect_list[-1], x[1])
+                    elif 'inout' == x[0]:
+                        self.canvas.add_inout(temp_rect_list[-1], x[1])
+                    elif ');' == x[0]:
+                        i = i + 1
+                        x = [s.strip() for s in lines[i].split(' ')]
+                        if 'endmodule' == x[0]:
+                            temp_rect_list[-1].update()
+                            break
+                        else:
+                            print('error')
+                            error = 1
+                            break
+                    else:
+                        print('error')
+                        error = 1
+                        break
+            else:
+                print('error')
+                error = 1
+                break
+
+        if error == 1:
+            temp_rect_list = []
+
+        for i in temp_rect_list:
+            self.canvas.rect_list.append(i)
 
     def generate_code(self):
         pass
