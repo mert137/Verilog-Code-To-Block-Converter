@@ -2,7 +2,7 @@
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPolygon
-from PyQt5.QtWidgets import QMenu
+from PyQt5.QtWidgets import QMenu,  QLabel, QPushButton, QGridLayout
 from PyQt5.QtCore import Qt
 
 
@@ -16,6 +16,8 @@ class Canvas(QtWidgets.QWidget):
 
         init_first_rect = Module()
         self.rect_list.append(init_first_rect)
+
+        self.intersect_module = 1
 
     # All canvas painting actions are handled here.
     def paintEvent(self, event):
@@ -73,47 +75,72 @@ class Canvas(QtWidgets.QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             if self.rect_list[-1].first_drawn == 0:
-                self.rect_list[-1].rect_begin = event.pos()
-                self.rect_list[-1].rect_end = event.pos()
-                self.update()
+                for i in self.rect_list:
+                    if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
+                        self.intersect_module = 0
+                if self.intersect_module == 1:
+                    self.rect_list[-1].rect_begin = event.pos()
+                    self.rect_list[-1].rect_end = event.pos()
+                    self.update()
         # elif event.button() == Qt.RightButton:
 
     # When mouse is pressed and moving, the bottom right corner of the rectangle also changes and shown in screen
     def mouseMoveEvent(self, event):
         if self.rect_list[-1].first_drawn == 0:
-            self.rect_list[-1].rect_end = event.pos()
-            self.update()
+            for i in self.rect_list:
+                if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
+                    self.intersect_module = 0
+            if self.intersect_module == 1:
+                self.rect_list[-1].rect_end = event.pos()
+                self.update()
 
     # After mouse has released, the bottom right corner of the rectangle is assigned and rectangle placed in screen
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             if self.rect_list[-1].first_drawn == 0:
-                self.rect_list[-1].rect_end = event.pos()
-                self.rect_list[-1].first_drawn = 1
-                # init_rect = Module()
-                # self.rect_list.append(init_rect)
-                self.update()
+                for i in self.rect_list:
+                    if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
+                        self.intersect_module = 0
+                if self.intersect_module == 1:
+                    self.rect_list[-1].rect_end = event.pos()
+                    self.rect_list[-1].first_drawn = 1
+                    self.update()
+            self.intersect_module = 1
 
     def contextMenuEvent(self, event):
+        empty_area = 1
         for i in self.rect_list:
             if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
+                empty_area = 0
                 contextMenu = QMenu(self)
 
                 # Add Input Port action is used to add input port to both code and block
-                inputAction = contextMenu.addAction("Add Input Port")
-                # Add Output Port action is used to add output port to both code and block
-                outputAction = contextMenu.addAction("Add Output Port")
-                # Add Inout Port action is used to add inout port to both code and block
-                inoutAction = contextMenu.addAction("Add Inout Port")
+                portAction = contextMenu.addAction("Add Port")
+                renameAction = contextMenu.addAction("Rename Module")
 
                 action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
-                if action == inputAction:
-                    self.add_input(i, "input_port_1")
-                elif action == outputAction:
-                    self.add_output(i, "output_port_1")
-                elif action == inoutAction:
-                    self.add_inout(i, "inout_port_1")
+                if action == portAction:
+                    self.myshow = InputDialog(i)
+                    self.myshow.setWindowTitle("Add Port")
+                    self.myshow.show()
+                # elif action == renameAction:
+                #     self.myshow = Rename()
+                #     self.myshow.setWindowTitle("Add Port")
+                #     self.myshow.show()
+                #     self.myshow.update(i)
+
+        if empty_area == 1:
+            contextMenu = QMenu(self)
+
+            # Add Input Port action is used to add input port to both code and block
+            addModuleAction = contextMenu.addAction("Add Module")
+
+            action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+            if action == addModuleAction:
+                tempModule = Module()
+                tempModule.center_text = 'case_block'
+                self.rect_list.append(tempModule)
 
     def add_input(self, module, text):
         tempClass = Port()
@@ -168,3 +195,66 @@ class Module:
         self.Tri_In_F = min(temp_left, temp_right)
         self.Tri_In_H = int(self.Tri_In_F / 2)
 
+
+class InputDialog(QtWidgets.QWidget):
+    def __init__(self, module):
+        super(InputDialog, self).__init__()
+
+        self.port = Port()
+        self.module = module
+
+        label1 = QLabel("Port Name")
+        label2 = QLabel("Signal Type")
+        label3 = QLabel("Signal Length")
+
+        self.port_type = "input"
+        self.combo_box = QtWidgets.QComboBox(self)              # creating a combo box widget
+        self.combo_box.setGeometry(200, 150, 150, 30)           # setting geometry of combo box
+        self.combo_box.addItems(["Input", "Output", "Inout"])   # adding list of items to combo box
+        self.combo_box.activated.connect(self.determine_type)   # adding action to combo box
+
+        self.nametextbox = QtWidgets.QLineEdit(self)
+        #self.nametextbox.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+
+        self.veclentextbox = QtWidgets.QLineEdit(self)
+        #self.veclentextbox.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+
+        self.setButton = QPushButton('Add', self)
+        self.setButton.clicked.connect(self.add_port)
+
+
+        mainLayout = QGridLayout()
+        mainLayout.addWidget(label1,             0, 0)
+        mainLayout.addWidget(label2,             0, 1)
+        mainLayout.addWidget(label3,             0, 2)
+
+        mainLayout.addWidget(self.combo_box,     1, 0)
+        mainLayout.addWidget(self.nametextbox,   1, 1)
+        mainLayout.addWidget(self.veclentextbox, 1, 2)
+
+        mainLayout.addWidget(self.setButton,     2, 2)
+
+        mainLayout.setRowMinimumHeight(2, 40)
+        mainLayout.setRowStretch(3, 1)
+        mainLayout.setColumnMinimumWidth(1, 200)
+        mainLayout.setSpacing(5)
+
+        self.setLayout(mainLayout)
+
+    def add_port(self):
+        self.port.port_type = self.port_type
+        self.port.text = self.nametextbox.text() + "(" + self.veclentextbox.text() + " downto 0" + ")"
+        if self.port_type == "output":
+            self.module.right_port_list.append(self.port)
+        else:
+            self.module.left_port_list.append(self.port)
+        self.module.update()
+        self.close()
+
+    def determine_type(self):
+        if str(self.combo_box.currentText()) == "Input":
+            self.port_type = 'input'
+        elif str(self.combo_box.currentText()) == "Output":
+            self.port_type = 'output'
+        elif str(self.combo_box.currentText()) == "Inout":
+            self.port_type = 'inout'
