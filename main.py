@@ -113,11 +113,11 @@ class MainWindow(QWidget):
                 tempModule.center_text = x[1]
                 self.canvas.rect_list.append(tempModule)
             if 'input' in x:
-                self.canvas.draw_input(self.canvas.rect_list[-1], x[1])
+                self.canvas.add_input(self.canvas.rect_list[-1], x[1])
             if 'output' in x:
-                self.canvas.draw_output(self.canvas.rect_list[-1], x[1])
+                self.canvas.add_output(self.canvas.rect_list[-1], x[1])
             if 'inout' in x:
-                self.canvas.draw_inout(self.canvas.rect_list[-1], x[1])
+                self.canvas.add_inout(self.canvas.rect_list[-1], x[1])
 
     def generate_code(self):
         pass
