@@ -13,6 +13,7 @@ class Canvas(QtWidgets.QWidget):
 
         self.show()
         self.rect_list = []
+        self.code_string = ""
 
         init_first_rect = Module()
         self.rect_list.append(init_first_rect)
@@ -33,38 +34,40 @@ class Canvas(QtWidgets.QWidget):
             in_order = 0
             out_order = 0
             inout_order = 0
-            for i in r.left_port_list:
-                if i.port_type == 'input':
-                    i.points = [r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H), int(r.Tri_In_F * in_order)),
-                                r.rect_begin + QtCore.QPoint(0, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)),
-                                r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H),
-                                                             int(r.Tri_In_F + r.Tri_In_F * in_order))]
+            for i in r.in_port_list:
+                i.points = [r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H), int(r.Tri_In_F * in_order)),
+                            r.rect_begin + QtCore.QPoint(0, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)),
+                            r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H),
+                                                         int(r.Tri_In_F + r.Tri_In_F * in_order))]
 
-                    # Write the port name
-                    qp.drawText(r.rect_begin + QtCore.QPoint(5, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)), i.text)
-                    in_order = in_order + 1
-
-                elif i.port_type == 'inout':
-                    i.points = [QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x()), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x() - 2 * r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order))]
-
-                    # Write the port name
-                    qp.drawText(QtCore.QPoint(int(r.rect_begin.x() + 5), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)), i.text)
-                    inout_order = inout_order + 1
+                # Write the port name
+                qp.drawText(r.rect_begin + QtCore.QPoint(5, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)), i.text)
+                in_order = in_order + 1
 
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
 
-            for i in r.right_port_list:
-                i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
-                                                       int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)),
-                            r.rect_end + QtCore.QPoint(1, int(-r.Tri_In_F - r.Tri_In_F * out_order)),
-                            r.rect_end + QtCore.QPoint(1, int(- r.Tri_In_F * out_order))]
+            for i in r.inout_port_list:
+                i.points = [QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F - r.Tri_In_F * inout_order)),
+                            QtCore.QPoint(int(r.rect_begin.x()), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)),
+                            QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F * inout_order)),
+                            QtCore.QPoint(int(r.rect_begin.x() - 2 * r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order))]
 
                 # Write the port name
-                qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-r.Tri_In_F / 2 - r.Tri_In_F * out_order)), i.text)
+                qp.drawText(QtCore.QPoint(int(r.rect_begin.x() + 5), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)), i.text)
+                inout_order = inout_order + 1
+
+                polygon = QPolygon(i.points)
+                qp.drawPolygon(polygon)
+
+            for i in r.out_port_list:
+                i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
+                                                       int(r.Tri_In_F / 2 - (r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
+                            r.rect_end + QtCore.QPoint(1, int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
+                            r.rect_end + QtCore.QPoint(1, int(r.Tri_In_F - (r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order))]
+
+                # Write the port name
+                qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F / 2 + r.Tri_In_F * out_order)), i.text)
                 out_order = out_order + 1
 
                 polygon = QPolygon(i.points)
@@ -145,22 +148,28 @@ class Canvas(QtWidgets.QWidget):
         tempClass = Port()
         tempClass.port_type = 'input'
         tempClass.text = text
-        module.left_port_list.append(tempClass)
+        module.in_port_list.append(tempClass)
         module.update()
 
     def add_output(self, module, text):
         tempClass = Port()
         tempClass.port_type = 'output'
         tempClass.text = text
-        module.right_port_list.append(tempClass)
+        module.out_port_list.append(tempClass)
         module.update()
 
     def add_inout(self, module, text):
         tempClass = Port()
         tempClass.port_type = 'inout'
         tempClass.text = text
-        module.left_port_list.append(tempClass)
+        module.inout_port_list.append(tempClass)
         module.update()
+
+    def update_code(self):
+        self.code_string = ""
+        for i in self.rect_list:
+            for j in i.module_string_list:
+                self.code_string = self.code_string + j
 
 
 class Port:
@@ -179,21 +188,44 @@ class Module:
         self.Tri_In_F = 2 * self.Tri_In_H
         self.center_text = ''               # Module name in the center of rectangle
         self.first_drawn = 0
-        self.left_port_list = []
-        self.right_port_list = []
+        self.in_port_list = []
+        self.out_port_list = []
+        self.inout_port_list = []
+        self.module_string_list = []
+
+    def update_string(self):
+        self.module_string_list = []
+        self.module_string_list.append("module ")
+        self.module_string_list.append(self.center_text )
+        self.module_string_list.append("(" + "\n")
+
+        for j in self.in_port_list:
+            self.module_string_list.append("input ")
+            self.module_string_list.append(j.text + ",\n")
+
+        for j in self.out_port_list:
+            self.module_string_list.append("output ")
+            self.module_string_list.append(j.text + ",\n")
+
+        for j in self.inout_port_list:
+            self.module_string_list.append("inout ")
+            self.module_string_list.append(j.text + ",\n")
+
+        self.module_string_list.append(");" + "\n")
+        self.module_string_list.append("endmodule" + "\n\n")
 
     def update(self):
         temp_left = self.Tri_In_F
         temp_right = self.Tri_In_F
-        if self.Tri_In_F * len(self.left_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.left_port_list) + 1))
+        if self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 1))
 
-        if self.Tri_In_F * len(self.right_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.right_port_list) + 1))
+        if self.Tri_In_F * len(self.out_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 1))
 
         self.Tri_In_F = min(temp_left, temp_right)
         self.Tri_In_H = int(self.Tri_In_F / 2)
-
+        self.update_string()
 
 class Rename(QtWidgets.QWidget):
     def __init__(self, module):
@@ -218,6 +250,7 @@ class Rename(QtWidgets.QWidget):
 
     def okay_button(self):
         self.module.center_text = self.nametextbox.text()
+        self.module.update()
         self.close()
 
 
@@ -267,9 +300,11 @@ class InputDialog(QtWidgets.QWidget):
         self.port.port_type = self.port_type
         self.port.text = self.nametextbox.text() + "(" + self.veclentextbox.text() + " downto 0" + ")"
         if self.port_type == "output":
-            self.module.right_port_list.append(self.port)
+            self.module.out_port_list.append(self.port)
+        elif self.port_type == "input":
+            self.module.in_port_list.append(self.port)
         else:
-            self.module.left_port_list.append(self.port)
+            self.module.inout_port_list.append(self.port)
         self.module.update()
         self.close()
 
