@@ -118,6 +118,7 @@ class MainWindow(QWidget):
                 self.canvas.add_output(self.canvas.rect_list[-1], x[1])
             if 'inout' in x:
                 self.canvas.add_inout(self.canvas.rect_list[-1], x[1])
+            self.canvas.rect_list[-1].update()
 
     def generate_code(self):
         pass
