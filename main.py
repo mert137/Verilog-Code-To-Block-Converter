@@ -8,11 +8,10 @@ from canvas import Canvas, Module
 
 title = "GUI PROJECT"
 
-# Explaın the flow of the code
-# Explaın the purpose of each class
-# Example: MaınWındow class: Thıs class has so and so components and ıt's prımary objectıve ıs ...
+# : MaınWındow class: Thıs class has so and so components and ıt's prımary objectıve is designing a GUI based application.
 
 
+# purpose of each class creates the main window.
 class MainWindow(QWidget):
     def __init__(self):
         try:
@@ -38,7 +37,7 @@ class MainWindow(QWidget):
         self.tab2 = QWidget()
 
         # Add tabs
-        # Explaın WHY do we add tabs?
+        # This tabs add code editor and rtl design.
         self.tabs.addTab(self.tab1, "Code Editor")
         self.tabs.addTab(self.tab2, "RTL Design")
 
@@ -113,6 +112,7 @@ class MainWindow(QWidget):
         while i != len(lines) - 1:
             i = i + 1
             x = [s.strip() for s in lines[i].split(' ')]
+   # This code parses "modul" in code editor.
             if x[0] == 'module' and x[2] == '(':
                 tempModule = Module()
                 tempModule.rect_begin = QtCore.QPoint(100, 100)
