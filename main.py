@@ -1,5 +1,6 @@
 import sys
 import traceback
+import re
 
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QAction, QHBoxLayout, QTabWidget, QTextEdit
@@ -107,50 +108,98 @@ class MainWindow(QWidget):
         temp_rect_list = []
 
         i = -1
-        error = 0
 
         while i != len(lines) - 1:
-            i = i + 1
-            x = [s.strip() for s in lines[i].split(' ')]
-   # This code parses "modul" in code editor.
-            if x[0] == 'module' and x[2] == '(':
-                tempModule = Module()
-                tempModule.rect_begin = QtCore.QPoint(100, 100)
-                tempModule.rect_end = QtCore.QPoint(300, 300)
-                tempModule.center_text = x[1]
-                temp_rect_list.append(tempModule)
-                while 1:
-                    i = i + 1
-                    x = [s.strip() for s in lines[i].split(' ')]
-                    if 'input' == x[0]:
-                        self.canvas.add_input(temp_rect_list[-1], x[1])
-                    elif 'output' == x[0]:
-                        self.canvas.add_output(temp_rect_list[-1], x[1])
-                    elif 'inout' == x[0]:
-                        self.canvas.add_inout(temp_rect_list[-1], x[1])
-                    elif ');' == x[0]:
-                        i = i + 1
-                        x = [s.strip() for s in lines[i].split(' ')]
-                        if 'endmodule' == x[0]:
-                            temp_rect_list[-1].update()
-                            break
-                        else:
-                            print('error')
-                            error = 1
-                            break
-                    else:
-                        print('error')
-                        error = 1
-                        break
-            else:
+            if self.canvas.error == 1:
                 print('error')
-                error = 1
                 break
+            i = i + 1
 
-        if error == 0:
+            result = re.split(r'\Amodule ', lines[i])       # Split start
+            if "" in result:
+                result.remove("")
+                result = re.split('(?:\(|\040\()\Z', result[0])       # Split end
+                if "" in result:
+                    result.remove("")
+                    if not (re.search('\W', result[0]) or result[0] == ""):  # Search for non-word character
+                        tempModule = Module()
+                        tempModule.rect_begin = QtCore.QPoint(100, 100)
+                        tempModule.rect_end = QtCore.QPoint(300, 300)
+                        tempModule.center_text = result[0]
+                        temp_rect_list.append(tempModule)
+                        while 1:
+                            if self.canvas.error == 1:
+                                print('error')
+                                break
+                            i = i + 1
+                            result = re.split('(,|\);)\Z', lines[i])
+                            while "" in result:
+                                result.remove("")
+                            if result[-1] != ');':
+                                result = re.split('\A(?:input |output |inout )', result[0])
+                                if "" in result:
+                                    result.remove("")
+                                    if not (re.search('\W', result[0]) or result[0] == ""):  # Search for non-word character
+                                        x = [s.strip() for s in lines[i].split(' ')]
+                                        if 'input' == x[0]:
+                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                                self.canvas.add_input(temp_rect_list[-1], result[0])
+                                            else:
+                                                print('error')
+                                                self.canvas.error = 1
+                                                break
+                                        elif 'output' == x[0]:
+                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                                self.canvas.add_output(temp_rect_list[-1], result[0])
+                                            else:
+                                                print('error')
+                                                self.canvas.error = 1
+                                                break
+                                        elif 'inout' == x[0]:
+                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                                self.canvas.add_inout(temp_rect_list[-1], result[0])
+                                            else:
+                                                print('error')
+                                                self.canvas.error = 1
+                                                break
+                                        else:
+                                            print('error')
+                                            self.canvas.error = 1
+                                            break
+                                    else:
+                                        self.canvas.error = 1
+                            else:
+                                i = i + 1
+                                x = [s.strip() for s in lines[i].split(' ')]
+                                if 'endmodule' == x[0]:
+                                    temp_rect_list[-1].update()
+                                    break
+                                else:
+                                    print('error')
+                                    self.canvas.error = 1
+                                    break
+
+                            if self.canvas.error == 1:
+                                print('error')
+                                self.canvas.error = 1
+                                break
+                    else:
+                        print("error")
+                        self.canvas.error = 1
+                        break
+                else:
+                    print("error")
+                    self.canvas.error = 1
+                    break
+            else:
+                print("error")
+                self.canvas.error = 1
+                break
+        if self.canvas.error == 0:
             for i in temp_rect_list:
                 self.canvas.rect_list.append(i)
-            #self.canvas.update_code()
+        else:
+            self.canvas.error = 0
 
     def generate_code(self):
         self.canvas.update_code()
