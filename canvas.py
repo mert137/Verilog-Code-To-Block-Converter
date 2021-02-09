@@ -4,6 +4,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPolygon
 from PyQt5.QtWidgets import QMenu,  QLabel, QPushButton, QGridLayout
 from PyQt5.QtCore import Qt
+import re
 
 
 class Canvas(QtWidgets.QWidget):
@@ -128,6 +129,7 @@ class Canvas(QtWidgets.QWidget):
                 # Add Input Port action is used to add input port to both code and block
                 portAction = contextMenu.addAction("Add Port")
                 renameAction = contextMenu.addAction("Rename Module")
+                removeModuleAction = contextMenu.addAction("Remove Module")
 
                 action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
@@ -139,98 +141,53 @@ class Canvas(QtWidgets.QWidget):
                     self.myshow = Rename(i)
                     self.myshow.setWindowTitle("Rename Module")
                     self.myshow.show()
+                elif action == removeModuleAction:
+                    self.rect_list.remove(i)
 
-        port_area = 0
+        port_area = "no_port"
         if module_area == 0:
             for r in self.rect_list:
-                in_order = 0
-                out_order = 0
-                inout_order = 0
+                temp_port = 0
                 for i in r.in_port_list:
-                    i.points = [r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H), int(r.Tri_In_F * in_order)),
-                                r.rect_begin + QtCore.QPoint(0, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)),
-                                r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H),
-                                                             int(r.Tri_In_F + r.Tri_In_F * in_order))]
-                    in_order = in_order + 1
-
                     polygon = QPolygon(i.points)
                     if polygon.containsPoint(event.pos(), Qt.OddEvenFill):
-                        port_area = 1
-                        contextMenu = QMenu(self)
-
-                        # Add Input Port action is used to add input port to both code and block
-                        removeAction = contextMenu.addAction("Remove")
-                        renameAction = contextMenu.addAction("Rename Port")
-
-                        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
-
-                        if action == removeAction:
-                            r.in_port_list.remove(i)
-                            r.update()
-                        elif action == renameAction:
-                            self.myshow = RenamePort(i, r)
-                            self.myshow.setWindowTitle("Rename Port")
-                            self.myshow.show()
-
+                        port_area = "input"
+                        temp_port = i
                 for i in r.inout_port_list:
-                    i.points = [QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H),
-                                              int(r.rect_end.y() - r.Tri_In_F - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x()),
-                                              int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H),
-                                              int(r.rect_end.y() - r.Tri_In_F * inout_order)),
-                                QtCore.QPoint(int(r.rect_begin.x() - 2 * r.Tri_In_H),
-                                              int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order))]
-                    inout_order = inout_order + 1
-
-                    polygon = QPolygon(i.points)
-                    if polygon.containsPoint(event.pos(),Qt.OddEvenFill):
-                        port_area = 1
-                        contextMenu = QMenu(self)
-
-                        # Add Input Port action is used to add input port to both code and block
-                        removeAction = contextMenu.addAction("Remove")
-                        renameAction = contextMenu.addAction("Rename Port")
-
-                        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
-
-                        if action == removeAction:
-                            r.inout_port_list.remove(i)
-                            r.update()
-                        elif action == renameAction:
-                            self.myshow = RenamePort(i, r)
-                            self.myshow.setWindowTitle("Rename Port")
-                            self.myshow.show()
-
-                for i in r.out_port_list:
-                    i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
-                                                           int(r.Tri_In_F / 2 - (
-                                                                       r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
-                                r.rect_end + QtCore.QPoint(1, int(
-                                    -(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
-                                r.rect_end + QtCore.QPoint(1, int(
-                                    r.Tri_In_F - (r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order))]
-                    out_order = out_order + 1
                     polygon = QPolygon(i.points)
                     if polygon.containsPoint(event.pos(), Qt.OddEvenFill):
-                        port_area = 1
-                        contextMenu = QMenu(self)
+                        port_area = "inout"
+                        temp_port = i
+                for i in r.out_port_list:
+                    polygon = QPolygon(i.points)
+                    if polygon.containsPoint(event.pos(), Qt.OddEvenFill):
+                        port_area = "output"
+                        temp_port = i
 
-                        # Add Input Port action is used to add input port to both code and block
-                        removeAction = contextMenu.addAction("Remove")
-                        renameAction = contextMenu.addAction("Rename Port")
+                if port_area != "no_port":
+                    contextMenu = QMenu(self)
+                    removeAction = contextMenu.addAction("Remove")
+                    renameAction = contextMenu.addAction("Rename Port")
 
-                        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+                    action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
-                        if action == removeAction:
-                            r.out_port_list.remove(i)
-                            r.update()
-                        elif action == renameAction:
-                            self.myshow = RenamePort(i, r)
-                            self.myshow.setWindowTitle("Rename Port")
-                            self.myshow.show()
+                    if action == removeAction:
+                        if port_area == "input":
+                            r.in_port_list.remove(temp_port)
+                        elif port_area == "inout":
+                            r.inout_port_list.remove(temp_port)
+                        elif port_area == "output":
+                            r.out_port_list.remove(temp_port)
+                        r.update()
+                    elif action == renameAction:
+                        self.myshow = RenamePort(temp_port, r)
+                        self.myshow.setWindowTitle("Rename Port")
+                        self.myshow.show()
+                    break
 
-        if port_area == 0 and module_area == 0:
+
+
+        if port_area == "no_port" and module_area == 0:
             contextMenu = QMenu(self)
 
             # Add Input Port action is used to add input port to both code and block
@@ -438,16 +395,33 @@ class InputDialog(QtWidgets.QWidget):
     def add_port(self):
         self.port.port_type = self.port_type
         try:
-            self.port.text = self.nametextbox.text() + "[" + str(int(self.veclentextbox.text()) - 1) + ":0]"
-            if self.port_type == "output":
-                self.module.out_port_list.append(self.port)
-            elif self.port_type == "input":
-                self.module.in_port_list.append(self.port)
+            if int(self.veclentextbox.text()) - 1 >= 0:
+                error = 0
+                if int(self.veclentextbox.text()) - 1 == 0:
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() == "" or self.nametextbox.text() == 'input' or self.nametextbox.text() == 'output' or self.nametextbox.text() == 'inout'):  # Search for non-word character
+                        self.port.text = self.nametextbox.text()
+                    else:
+                        error = 1
+                        self.myshow = ErrorMessage('Please enter a valid name')
+                elif int(self.veclentextbox.text()) - 1 > 0:
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() == "" or self.nametextbox.text() == 'input' or self.nametextbox.text() == 'output' or self.nametextbox.text() == 'inout'):  # Search for non-word character
+                        self.port.text = self.nametextbox.text() + "[" + str(int(self.veclentextbox.text()) - 1) + ":0]"
+                    else:
+                        error = 1
+                        self.myshow = ErrorMessage('Please enter a valid name')
+
+                    if error == 0:
+                        if self.port_type == "output":
+                            self.module.out_port_list.append(self.port)
+                        elif self.port_type == "input":
+                            self.module.in_port_list.append(self.port)
+                        else:
+                            self.module.inout_port_list.append(self.port)
+                        self.module.update()
             else:
-                self.module.inout_port_list.append(self.port)
+                self.myshow = ErrorMessage('Please enter a valid signal length')
         except:
-            pass
-        self.module.update()
+            self.myshow = ErrorMessage('Please enter a signal length')
         self.close()
 
     def determine_type(self):
@@ -457,3 +431,14 @@ class InputDialog(QtWidgets.QWidget):
             self.port_type = 'output'
         elif str(self.combo_box.currentText()) == "Inout":
             self.port_type = 'inout'
+
+class ErrorMessage(QtWidgets.QWidget):
+    def __init__(self, error_message):
+        super(ErrorMessage, self).__init__()
+
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setText("Error")
+        msg.setInformativeText(error_message)
+        msg.setWindowTitle("Error")
+        msg.exec_()
