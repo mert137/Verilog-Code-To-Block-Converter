@@ -196,8 +196,15 @@ class Canvas(QtWidgets.QWidget):
             action = contextMenu.exec_(self.mapToGlobal(event.pos()))
             if action == addModuleAction:
                 tempModule = Module()
-                tempModule.center_text = 'case_block'
-                self.rect_list.append(tempModule)
+                center_texts = [i.center_text for i in self.rect_list]
+                i = 0
+                while 1:
+                    if 'case_block' + str(i) not in center_texts:
+                        tempModule.center_text = 'case_block_' + str(i)
+                        tempModule.update()
+                        self.rect_list.append(tempModule)
+                        break
+                    i = i + 1
 
     def add_input(self, module, text):
         tempClass = Port()
