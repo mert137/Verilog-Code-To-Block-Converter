@@ -114,28 +114,33 @@ class Canvas(QtWidgets.QWidget):
                 i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
                 i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
                 i.drag_release = 1
+                i.update()
                 self.update()
                 break
             elif i.resize == 1:
                 i.rect_begin = event.pos()
                 i.resize_release = 1
+                i.update()
                 self.update()
                 break
             elif i.resize == 2:
                 i.rect_begin.setX(event.pos().x())
                 i.rect_end.setY(event.pos().y())
                 i.resize_release = 2
+                i.update()
                 self.update()
                 break
             elif i.resize == 3:
                 i.rect_begin.setY(event.pos().y())
                 i.rect_end.setX(event.pos().x())
                 i.resize_release = 3
+                i.update()
                 self.update()
                 break
             elif i.resize == 4:
                 i.rect_end = event.pos()
                 i.resize_release = 4
+                i.update()
                 self.update()
                 break
             else:
@@ -151,12 +156,14 @@ class Canvas(QtWidgets.QWidget):
                         i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
                         i.drag_release = 0
                         i.drag = 0
+                        i.update()
                         self.update()
                         break
                     elif i.resize_release == 1:
                         i.rect_begin = event.pos()
                         i.resize_release = 0
                         i.resize = 0
+                        i.update()
                         self.update()
                         break
                     elif i.resize_release == 2:
@@ -164,6 +171,7 @@ class Canvas(QtWidgets.QWidget):
                         i.rect_end.setY(event.pos().y())
                         i.resize_release = 0
                         i.resize = 0
+                        i.update()
                         self.update()
                         break
                     elif i.resize_release == 3:
@@ -171,12 +179,14 @@ class Canvas(QtWidgets.QWidget):
                         i.rect_end.setX(event.pos().x())
                         i.resize_release = 0
                         i.resize = 0
+                        i.update()
                         self.update()
                         break
                     elif i.resize_release == 4:
                         i.rect_end = event.pos()
                         i.resize_release = 0
                         i.resize = 0
+                        i.update()
                         self.update()
                         break
                     else:
@@ -345,11 +355,11 @@ class Module:
     def update(self):
         temp_left = self.Tri_In_F
         temp_right = self.Tri_In_F
-        if self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 1))
+        if not (self.rect_end.y() - self.rect_begin.y() - 10 < self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 5 < self.rect_end.y() - self.rect_begin.y() + 10):
+            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 5))
 
-        if self.Tri_In_F * len(self.out_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 1))
+        if not (self.rect_end.y() - self.rect_begin.y() - 10 < self.Tri_In_F * len(self.out_port_list) + 5 < self.rect_end.y() - self.rect_begin.y() + 10):
+            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 5))
 
         self.Tri_In_F = min(temp_left, temp_right)
         self.Tri_In_H = int(self.Tri_In_F / self.Tri_coef)
