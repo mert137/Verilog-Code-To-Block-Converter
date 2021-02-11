@@ -15,11 +15,6 @@ class Canvas(QtWidgets.QWidget):
         self.show()
         self.rect_list = []
         self.code_string = ""
-
-        init_first_rect = Module()
-        self.rect_list.append(init_first_rect)
-
-        self.intersect_module = 1
         self.error = 0
 
     # All canvas painting actions are handled here.
@@ -75,49 +70,117 @@ class Canvas(QtWidgets.QWidget):
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
 
-
     # When mouse is pressed, the top left corner of the rectangle being drawn is saved
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if self.rect_list[-1].first_drawn == 0:
+            if len(self.rect_list) != 0:
                 for i in self.rect_list:
-                    if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
-                        self.intersect_module = 0
-                if self.intersect_module == 1:
-                    self.rect_list[-1].rect_begin = event.pos()
-                    self.rect_list[-1].rect_end = event.pos()
-                    self.update()
+                    if i.rect_begin.x() + 10 <= event.pos().x() <= i.rect_end.x() -10 and i.rect_begin.y() + 10 <= event.pos().y() <= i.rect_end.y() - 10:
+                        i.relative_start = event.pos()
+                        i.temp_rect_begin = i.rect_begin
+                        i.temp_rect_end = i.rect_end
+                        i.drag = 1
+                        break
+                    elif (i.rect_begin.x() < event.pos().x() < i.rect_begin.x() + 10 and
+                          i.rect_begin.y() < event.pos().y() < i.rect_begin.y() + 10):
+                        i.rect_begin = event.pos()
+                        i.resize = 1
+                        break
+                    elif (i.rect_begin.x() < event.pos().x() < i.rect_begin.x() + 10 and
+                                i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
+                        i.rect_begin.setX(event.pos().x())
+                        i.rect_end.setY(event.pos().y())
+                        i.resize = 2
+                        break
+                    elif (i.rect_end.x() - 10 < event.pos().x() < i.rect_end.x() and
+                                i.rect_begin.y() < event.pos().y() < i.rect_begin.y() + 10):
+                        i.rect_begin.setY(event.pos().y())
+                        i.rect_end.setX(event.pos().x())
+                        i.resize = 3
+                        break
+                    elif (i.rect_end.x() - 10 < event.pos().x() < i.rect_end.x() and
+                                i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
+                        i.rect_end = event.pos()
+                        i.resize = 4
+                        break
+                    else:
+                        pass
         # elif event.button() == Qt.RightButton:
 
     # When mouse is pressed and moving, the bottom right corner of the rectangle also changes and shown in screen
     def mouseMoveEvent(self, event):
-        if self.rect_list[-1].first_drawn == 0:
-            for i in self.rect_list:
-                if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
-                    self.intersect_module = 0
-            if self.intersect_module == 1:
-                self.rect_list[-1].rect_end = event.pos()
+        for i in self.rect_list:
+            if i.drag == 1:
+                i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
+                i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
+                i.drag_release = 1
                 self.update()
+                break
+            elif i.resize == 1:
+                i.rect_begin = event.pos()
+                i.resize_release = 1
+                self.update()
+                break
+            elif i.resize == 2:
+                i.rect_begin.setX(event.pos().x())
+                i.rect_end.setY(event.pos().y())
+                i.resize_release = 2
+                self.update()
+                break
+            elif i.resize == 3:
+                i.rect_begin.setY(event.pos().y())
+                i.rect_end.setX(event.pos().x())
+                i.resize_release = 3
+                self.update()
+                break
+            elif i.resize == 4:
+                i.rect_end = event.pos()
+                i.resize_release = 4
+                self.update()
+                break
+            else:
+                pass
 
     # After mouse has released, the bottom right corner of the rectangle is assigned and rectangle placed in screen
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if self.rect_list[-1].first_drawn == 0:
+            if len(self.rect_list) != 0:
                 for i in self.rect_list:
-                    if i.rect_begin.x() < event.pos().x() < i.rect_end.x() and i.rect_begin.y() < event.pos().y() < i.rect_end.y():
-                        self.intersect_module = 0
-                if self.intersect_module == 1:
-                    self.rect_list[-1].rect_end = event.pos()
-                    if (self.rect_list[-1].rect_end.x() - self.rect_list[-1].rect_begin.x() < 200) or (self.rect_list[-1].rect_end.y() - self.rect_list[-1].rect_begin.y() < 200):
-                        self.rect_list[-1].rect_end.setX(self.rect_list[-1].rect_begin.x() + 200)
-                        self.rect_list[-1].rect_end.setY(self.rect_list[-1].rect_begin.y() + 200)
-                        for i in self.rect_list:
-                            if event.pos().x() < i.rect_end.x() and event.pos().y() < i.rect_end.y():
-                                self.intersect_module = 0
-                #if self.intersect_module == 1:
-                    self.rect_list[-1].first_drawn = 1
-                    self.update()
-            self.intersect_module = 1
+                    if i.drag_release == 1:
+                        i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
+                        i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
+                        i.drag_release = 0
+                        i.drag = 0
+                        self.update()
+                        break
+                    elif i.resize_release == 1:
+                        i.rect_begin = event.pos()
+                        i.resize_release = 0
+                        i.resize = 0
+                        self.update()
+                        break
+                    elif i.resize_release == 2:
+                        i.rect_begin.setX(event.pos().x())
+                        i.rect_end.setY(event.pos().y())
+                        i.resize_release = 0
+                        i.resize = 0
+                        self.update()
+                        break
+                    elif i.resize_release == 3:
+                        i.rect_begin.setY(event.pos().y())
+                        i.rect_end.setX(event.pos().x())
+                        i.resize_release = 0
+                        i.resize = 0
+                        self.update()
+                        break
+                    elif i.resize_release == 4:
+                        i.rect_end = event.pos()
+                        i.resize_release = 0
+                        i.resize = 0
+                        self.update()
+                        break
+                    else:
+                        pass
 
     def contextMenuEvent(self, event):
         module_area = 0
@@ -137,12 +200,15 @@ class Canvas(QtWidgets.QWidget):
                     self.myshow = InputDialog(i)
                     self.myshow.setWindowTitle("Add Port")
                     self.myshow.show()
+                    self.update()
                 elif action == renameAction:
                     self.myshow = Rename(i)
                     self.myshow.setWindowTitle("Rename Module")
                     self.myshow.show()
+                    self.update()
                 elif action == removeModuleAction:
                     self.rect_list.remove(i)
+                    self.update()
 
         port_area = "no_port"
         if module_area == 0:
@@ -174,10 +240,16 @@ class Canvas(QtWidgets.QWidget):
                     if action == removeAction:
                         if port_area == "input":
                             r.in_port_list.remove(temp_port)
+                            r.update()
+                            self.update()
                         elif port_area == "inout":
                             r.inout_port_list.remove(temp_port)
+                            r.update()
+                            self.update()
                         elif port_area == "output":
                             r.out_port_list.remove(temp_port)
+                            r.update()
+                            self.update()
                         r.update()
                     elif action == renameAction:
                         self.myshow = RenamePort(temp_port, r)
@@ -199,10 +271,15 @@ class Canvas(QtWidgets.QWidget):
                 center_texts = [i.center_text for i in self.rect_list]
                 i = 0
                 while 1:
-                    if 'case_block' + str(i) not in center_texts:
+                    if 'case_block_' + str(i) not in center_texts:
                         tempModule.center_text = 'case_block_' + str(i)
+                        tempModule.rect_begin = event.pos()
+                        tempModule.rect_end = event.pos() + QtCore.QPoint(200, 200)
                         tempModule.update()
                         self.rect_list.append(tempModule)
+                        # To call paintEvent method, update method is run.
+                        # When module is created, to show it on canvas paintEvent must be called
+                        self.update()
                         break
                     i = i + 1
 
@@ -212,6 +289,7 @@ class Canvas(QtWidgets.QWidget):
         tempClass.text = text
         module.in_port_list.append(tempClass)
         module.update()
+        self.update()
 
     def add_output(self, module, text):
         tempClass = Port()
@@ -219,6 +297,7 @@ class Canvas(QtWidgets.QWidget):
         tempClass.text = text
         module.out_port_list.append(tempClass)
         module.update()
+        self.update()
 
     def add_inout(self, module, text):
         tempClass = Port()
@@ -226,6 +305,7 @@ class Canvas(QtWidgets.QWidget):
         tempClass.text = text
         module.inout_port_list.append(tempClass)
         module.update()
+        self.update()
 
     def update_code(self):
         self.code_string = ""
@@ -246,17 +326,34 @@ class Module:
     def __init__(self):
         self.rect_begin = QtCore.QPoint()   # Module rectangle top left corner
         self.rect_end = QtCore.QPoint()     # Module rectangle bottom right corner
+        self.temp_rect_begin = QtCore.QPoint()
+        self.temp_rect_end = QtCore.QPoint()
+        self.relative_start = QtCore.QPoint()
+        self.drag = 0
+        self.resize = 0
+        self.drag_release = 0
+        self.resize_release = 0
         self.Tri_coef = 0.5
         self.Tri_In_H = 30
         self.Tri_In_F = self.Tri_coef * self.Tri_In_H
         self.center_text = ''               # Module name in the center of rectangle
-        self.first_drawn = 0
         self.in_port_list = []
         self.out_port_list = []
         self.inout_port_list = []
         self.module_string_list = []
 
-    def update_string(self):
+    def update(self):
+        temp_left = self.Tri_In_F
+        temp_right = self.Tri_In_F
+        if self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 1))
+
+        if self.Tri_In_F * len(self.out_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
+            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 1))
+
+        self.Tri_In_F = min(temp_left, temp_right)
+        self.Tri_In_H = int(self.Tri_In_F / self.Tri_coef)
+
         self.module_string_list = []
         self.module_string_list.append("module ")
         self.module_string_list.append(self.center_text )
@@ -277,18 +374,6 @@ class Module:
         self.module_string_list.append(");" + "\n")
         self.module_string_list.append("endmodule" + "\n\n")
 
-    def update(self):
-        temp_left = self.Tri_In_F
-        temp_right = self.Tri_In_F
-        if self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 1))
-
-        if self.Tri_In_F * len(self.out_port_list) + 1 >= self.rect_end.y() - self.rect_begin.y():
-            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 1))
-
-        self.Tri_In_F = min(temp_left, temp_right)
-        self.Tri_In_H = int(self.Tri_In_F / self.Tri_coef)
-        self.update_string()
 
 class Rename(QtWidgets.QWidget):
     def __init__(self, module):
@@ -347,7 +432,6 @@ class RenamePort(QtWidgets.QWidget):
 
         self.setLayout(mainLayout)
 
-
     def okay_button(self):
         self.port.text = self.nametextbox.text()
         try:
@@ -356,6 +440,7 @@ class RenamePort(QtWidgets.QWidget):
             pass
         self.module.update()
         self.close()
+
 
 class InputDialog(QtWidgets.QWidget):
     def __init__(self, module):
@@ -379,7 +464,6 @@ class InputDialog(QtWidgets.QWidget):
 
         self.setButton = QPushButton('Add', self)
         self.setButton.clicked.connect(self.add_port)
-
 
         mainLayout = QGridLayout()
         mainLayout.addWidget(label1,             0, 0)
@@ -417,14 +501,14 @@ class InputDialog(QtWidgets.QWidget):
                         error = 1
                         self.myshow = ErrorMessage('Please enter a valid name')
 
-                    if error == 0:
-                        if self.port_type == "output":
-                            self.module.out_port_list.append(self.port)
-                        elif self.port_type == "input":
-                            self.module.in_port_list.append(self.port)
-                        else:
-                            self.module.inout_port_list.append(self.port)
-                        self.module.update()
+                if error == 0:
+                    if self.port_type == "output":
+                        self.module.out_port_list.append(self.port)
+                    elif self.port_type == "input":
+                        self.module.in_port_list.append(self.port)
+                    else:
+                        self.module.inout_port_list.append(self.port)
+                    self.module.update()
             else:
                 self.myshow = ErrorMessage('Please enter a valid signal length')
         except:
