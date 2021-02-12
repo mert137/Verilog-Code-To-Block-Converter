@@ -109,6 +109,7 @@ class MainWindow(QWidget):
 
         i = -1
 
+        forbidden_module_names = ["input", "output", "inout", "module", "endmodule", ""]
         while i != len(lines) - 1:
             if self.canvas.error == 1:
                 print('error')
@@ -121,12 +122,13 @@ class MainWindow(QWidget):
                 result = re.split('(?:\(|\040\()\Z', result[0])       # Split end
                 if "" in result:
                     result.remove("")
-                    if not (re.search('\W', result[0]) or result[0] == ""):  # Search for non-word character
+                    if not (re.search('\W', result[0]) or (result[0] not in self.canvas.forbidden_module_names)):  # Search for non-word character
                         tempModule = Module()
                         tempModule.rect_begin = QtCore.QPoint(100, 100)
                         tempModule.rect_end = QtCore.QPoint(300, 300)
                         tempModule.center_text = result[0]
                         temp_rect_list.append(tempModule)
+                        forbidden_module_names.append(tempModule.center_text)
                         while 1:
                             if self.canvas.error == 1:
                                 print('error')
@@ -142,21 +144,21 @@ class MainWindow(QWidget):
                                     if not (re.search('\W', result[0]) or result[0] == ""):  # Search for non-word character
                                         x = [s.strip() for s in lines[i].split(' ')]
                                         if 'input' == x[0]:
-                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                            if result[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_input(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
                                                 self.canvas.error = 1
                                                 break
                                         elif 'output' == x[0]:
-                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                            if result[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_output(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
                                                 self.canvas.error = 1
                                                 break
                                         elif 'inout' == x[0]:
-                                            if result[0] != 'input' or result[0] != 'output' or result[0] != 'inout':
+                                            if result[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_inout(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
@@ -198,6 +200,7 @@ class MainWindow(QWidget):
         if self.canvas.error == 0:
             for i in temp_rect_list:
                 self.canvas.rect_list.append(i)
+            self.canvas.forbidden_module_names = forbidden_module_names.copy()
         else:
             self.canvas.error = 0
 
