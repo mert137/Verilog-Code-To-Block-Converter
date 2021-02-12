@@ -1,13 +1,17 @@
-Mac Platform
-
-
-
-
-
-
-
-
-
-
-
-Wİndows platform
+For Mac Platform
+1-) Download below link version Python 3.9.1
+    https://www.python.org/downloads/mac-osx/
+2-) Run IDLE Python 3.9
+3-) File -> Open -> main.py
+Important note: main.py and canvas.py files are in the same folder.
+4-)Run Module F5
+5-) GUI will be open.
+**************************************************************************
+For Windows platform
+1-) Download below link version Python 3.9.1
+    https://www.python.org/downloads/windows/
+2-) Run IDLE Python 3.9
+3-) File -> Open -> main.py
+Important note: main.py and canvas.py files are in the same folder.
+4-)Run Module F5 
+5-) GUI will be open.
