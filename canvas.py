@@ -16,6 +16,7 @@ class Canvas(QtWidgets.QWidget):
         self.rect_list = []
         self.code_string = ""
         self.error = 0
+        self.forbidden_module_names = ["input", "output", "inout", "module", "endmodule", ""]
 
     # All canvas painting actions are handled here.
     def paintEvent(self, event):
@@ -32,11 +33,6 @@ class Canvas(QtWidgets.QWidget):
             out_order = 0
             inout_order = 0
             for i in r.in_port_list:
-                i.points = [r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H), int(r.Tri_In_F * in_order)),
-                            r.rect_begin + QtCore.QPoint(0, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)),
-                            r.rect_begin + QtCore.QPoint(int(-r.Tri_In_H),
-                                                         int(r.Tri_In_F + r.Tri_In_F * in_order))]
-
                 # Write the port name
                 qp.drawText(r.rect_begin + QtCore.QPoint(5, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)), i.text)
                 in_order = in_order + 1
@@ -44,28 +40,18 @@ class Canvas(QtWidgets.QWidget):
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
 
-            for i in r.inout_port_list:
-                i.points = [QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F - r.Tri_In_F * inout_order)),
-                            QtCore.QPoint(int(r.rect_begin.x()), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)),
-                            QtCore.QPoint(int(r.rect_begin.x() - r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F * inout_order)),
-                            QtCore.QPoint(int(r.rect_begin.x() - 2 * r.Tri_In_H), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order))]
-
+            for i in r.out_port_list:
                 # Write the port name
-                qp.drawText(QtCore.QPoint(int(r.rect_begin.x() + 5), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)), i.text)
-                inout_order = inout_order + 1
+                qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F / 2 + r.Tri_In_F * out_order)), i.text)
+                out_order = out_order + 1
 
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
 
-            for i in r.out_port_list:
-                i.points = [r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 1),
-                                                       int(r.Tri_In_F / 2 - (r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
-                            r.rect_end + QtCore.QPoint(1, int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order)),
-                            r.rect_end + QtCore.QPoint(1, int(r.Tri_In_F - (r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F * out_order))]
-
+            for i in r.inout_port_list:
                 # Write the port name
-                qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F / 2 + r.Tri_In_F * out_order)), i.text)
-                out_order = out_order + 1
+                qp.drawText(QtCore.QPoint(int(r.rect_begin.x() + 5), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)), i.text)
+                inout_order = inout_order + 1
 
                 polygon = QPolygon(i.points)
                 qp.drawPolygon(polygon)
@@ -115,33 +101,33 @@ class Canvas(QtWidgets.QWidget):
                 i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
                 i.drag_release = 1
                 i.update()
-                self.update()
+                self.update()   # To call paintEvent
                 break
             elif i.resize == 1:
                 i.rect_begin = event.pos()
                 i.resize_release = 1
                 i.update()
-                self.update()
+                self.update()   # To call paintEvent
                 break
             elif i.resize == 2:
                 i.rect_begin.setX(event.pos().x())
                 i.rect_end.setY(event.pos().y())
                 i.resize_release = 2
                 i.update()
-                self.update()
+                self.update()   # To call paintEvent
                 break
             elif i.resize == 3:
                 i.rect_begin.setY(event.pos().y())
                 i.rect_end.setX(event.pos().x())
                 i.resize_release = 3
                 i.update()
-                self.update()
+                self.update()   # To call paintEvent
                 break
             elif i.resize == 4:
                 i.rect_end = event.pos()
                 i.resize_release = 4
                 i.update()
-                self.update()
+                self.update()   # To call paintEvent
                 break
             else:
                 pass
@@ -157,14 +143,14 @@ class Canvas(QtWidgets.QWidget):
                         i.drag_release = 0
                         i.drag = 0
                         i.update()
-                        self.update()
+                        self.update()   # To call paintEvent
                         break
                     elif i.resize_release == 1:
                         i.rect_begin = event.pos()
                         i.resize_release = 0
                         i.resize = 0
                         i.update()
-                        self.update()
+                        self.update()   # To call paintEvent
                         break
                     elif i.resize_release == 2:
                         i.rect_begin.setX(event.pos().x())
@@ -172,7 +158,7 @@ class Canvas(QtWidgets.QWidget):
                         i.resize_release = 0
                         i.resize = 0
                         i.update()
-                        self.update()
+                        self.update()   # To call paintEvent
                         break
                     elif i.resize_release == 3:
                         i.rect_begin.setY(event.pos().y())
@@ -180,14 +166,14 @@ class Canvas(QtWidgets.QWidget):
                         i.resize_release = 0
                         i.resize = 0
                         i.update()
-                        self.update()
+                        self.update()   # To call paintEvent
                         break
                     elif i.resize_release == 4:
                         i.rect_end = event.pos()
                         i.resize_release = 0
                         i.resize = 0
                         i.update()
-                        self.update()
+                        self.update()   # To call paintEvent
                         break
                     else:
                         pass
@@ -207,16 +193,17 @@ class Canvas(QtWidgets.QWidget):
                 action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
                 if action == portAction:
-                    self.myshow = InputDialog(i)
+                    self.myshow = AddPort(i)
                     self.myshow.setWindowTitle("Add Port")
                     self.myshow.show()
                     self.update()
                 elif action == renameAction:
-                    self.myshow = Rename(i)
+                    self.myshow = RenameModule(i, self.forbidden_module_names)
                     self.myshow.setWindowTitle("Rename Module")
                     self.myshow.show()
                     self.update()
                 elif action == removeModuleAction:
+                    self.forbidden_module_names.remove(i.center_text)
                     self.rect_list.remove(i)
                     self.update()
 
@@ -287,6 +274,7 @@ class Canvas(QtWidgets.QWidget):
                         tempModule.rect_end = event.pos() + QtCore.QPoint(200, 200)
                         tempModule.update()
                         self.rect_list.append(tempModule)
+                        self.forbidden_module_names.append(tempModule.center_text)
                         # To call paintEvent method, update method is run.
                         # When module is created, to show it on canvas paintEvent must be called
                         self.update()
@@ -351,6 +339,7 @@ class Module:
         self.out_port_list = []
         self.inout_port_list = []
         self.module_string_list = []
+        self.forbidden_words = ["input", "output", "inout", "module", "endmodule",""]
 
     def update(self):
         temp_left = self.Tri_In_F
@@ -366,30 +355,63 @@ class Module:
 
         self.module_string_list = []
         self.module_string_list.append("module ")
-        self.module_string_list.append(self.center_text )
+        self.module_string_list.append(self.center_text)
         self.module_string_list.append("(" + "\n")
 
+        in_order = 0
         for j in self.in_port_list:
             self.module_string_list.append("input ")
             self.module_string_list.append(j.text + ",\n")
+            self.forbidden_words.append(j.text)
 
+            j.points = [self.rect_begin + QtCore.QPoint(int(-self.Tri_In_H), int(self.Tri_In_F * in_order)),
+                        self.rect_begin + QtCore.QPoint(0, int(self.Tri_In_F / 2 + self.Tri_In_F * in_order)),
+                        self.rect_begin + QtCore.QPoint(int(-self.Tri_In_H),
+                                                     int(self.Tri_In_F + self.Tri_In_F * in_order))]
+            # Write the port name
+            in_order = in_order + 1
+
+        out_order = 0
         for j in self.out_port_list:
             self.module_string_list.append("output ")
             self.module_string_list.append(j.text + ",\n")
+            self.forbidden_words.append(j.text)
 
+            j.points = [self.rect_end + QtCore.QPoint(int(self.Tri_In_H + 1),
+                                                   int(self.Tri_In_F / 2 - (
+                                                               self.rect_end.y() - self.rect_begin.y()) + self.Tri_In_F * out_order)),
+                        self.rect_end + QtCore.QPoint(1,
+                                                   int(-(self.rect_end.y() - self.rect_begin.y()) + self.Tri_In_F * out_order)),
+                        self.rect_end + QtCore.QPoint(1, int(
+                            self.Tri_In_F - (self.rect_end.y() - self.rect_begin.y()) + self.Tri_In_F * out_order))]
+
+            out_order = out_order + 1
+
+        inout_order = 0
         for j in self.inout_port_list:
             self.module_string_list.append("inout ")
             self.module_string_list.append(j.text + ",\n")
+            self.forbidden_words.append(j.text)
+
+            j.points = [QtCore.QPoint(int(self.rect_begin.x() - self.Tri_In_H),
+                                      int(self.rect_end.y() - self.Tri_In_F - self.Tri_In_F * inout_order)),
+                        QtCore.QPoint(int(self.rect_begin.x()),
+                                      int(self.rect_end.y() - self.Tri_In_F / 2 - self.Tri_In_F * inout_order)),
+                        QtCore.QPoint(int(self.rect_begin.x() - self.Tri_In_H),
+                                      int(self.rect_end.y() - self.Tri_In_F * inout_order)),
+                        QtCore.QPoint(int(self.rect_begin.x() - 2 * self.Tri_In_H),
+                                      int(self.rect_end.y() - self.Tri_In_F / 2 - self.Tri_In_F * inout_order))]
+            inout_order = inout_order + 1
 
         self.module_string_list.append(");" + "\n")
         self.module_string_list.append("endmodule" + "\n\n")
 
-
-class Rename(QtWidgets.QWidget):
-    def __init__(self, module):
-        super(Rename, self).__init__()
+class RenameModule(QtWidgets.QWidget):
+    def __init__(self, module, forbidden_module_names):
+        super(RenameModule, self).__init__()
 
         self.module = module
+        self.forbidden_module_names = forbidden_module_names
 
         self.nametextbox = QtWidgets.QLineEdit(self)
         self.setButton = QPushButton('Okay', self)
@@ -407,9 +429,15 @@ class Rename(QtWidgets.QWidget):
         self.setLayout(mainLayout)
 
     def okay_button(self):
-        self.module.center_text = self.nametextbox.text()
+        self.forbidden_module_names.remove(self.module.center_text)
+        if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() in self.forbidden_module_names):  # Search for non-word character
+            self.module.center_text = self.nametextbox.text()
+            self.forbidden_module_names.append(self.module.center_text)
+            self.close()
+        else:
+            self.forbidden_module_names.append(self.module.center_text)
+            self.myshow = ErrorMessage('Please enter a valid name')
         self.module.update()
-        self.close()
 
 
 class RenamePort(QtWidgets.QWidget):
@@ -443,18 +471,30 @@ class RenamePort(QtWidgets.QWidget):
         self.setLayout(mainLayout)
 
     def okay_button(self):
-        self.port.text = self.nametextbox.text()
         try:
-            self.port.text = self.nametextbox.text() + "[" + str(int(self.veclentextbox.text()) - 1) + ":0]"
+            if int(self.veclentextbox.text()) - 1 >= 0:
+                if int(self.veclentextbox.text()) - 1 == 0:
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() in self.module.forbidden_words):  # Search for non-word character
+                        self.port.text = self.nametextbox.text()
+                        self.close()
+                    else:
+                        self.myshow = ErrorMessage('Please enter a valid name')
+                elif int(self.veclentextbox.text()) - 1 > 0:
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() in self.module.forbidden_words):  # Search for non-word character
+                        self.port.text = self.nametextbox.text() + "[" + str(int(self.veclentextbox.text()) - 1) + ":0]"
+                        self.close()
+                    else:
+                        self.myshow = ErrorMessage('Please enter a valid name')
+            else:
+                self.myshow = ErrorMessage('Please enter a valid signal length')
         except:
-            pass
+            self.myshow = ErrorMessage('Please enter a valid signal length')
         self.module.update()
-        self.close()
 
 
-class InputDialog(QtWidgets.QWidget):
+class AddPort(QtWidgets.QWidget):
     def __init__(self, module):
-        super(InputDialog, self).__init__()
+        super(AddPort, self).__init__()
 
         self.port = Port()
         self.module = module
@@ -499,13 +539,13 @@ class InputDialog(QtWidgets.QWidget):
             if int(self.veclentextbox.text()) - 1 >= 0:
                 error = 0
                 if int(self.veclentextbox.text()) - 1 == 0:
-                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() == "" or self.nametextbox.text() == 'input' or self.nametextbox.text() == 'output' or self.nametextbox.text() == 'inout'):  # Search for non-word character
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() in self.module.forbidden_words):  # Search for non-word character
                         self.port.text = self.nametextbox.text()
                     else:
                         error = 1
                         self.myshow = ErrorMessage('Please enter a valid name')
                 elif int(self.veclentextbox.text()) - 1 > 0:
-                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() == "" or self.nametextbox.text() == 'input' or self.nametextbox.text() == 'output' or self.nametextbox.text() == 'inout'):  # Search for non-word character
+                    if not (re.search('\W', self.nametextbox.text()) or self.nametextbox.text() in self.module.forbidden_words):  # Search for non-word character
                         self.port.text = self.nametextbox.text() + "[" + str(int(self.veclentextbox.text()) - 1) + ":0]"
                     else:
                         error = 1
@@ -519,11 +559,11 @@ class InputDialog(QtWidgets.QWidget):
                     else:
                         self.module.inout_port_list.append(self.port)
                     self.module.update()
+                    self.close()
             else:
                 self.myshow = ErrorMessage('Please enter a valid signal length')
         except:
             self.myshow = ErrorMessage('Please enter a signal length')
-        self.close()
 
     def determine_type(self):
         if str(self.combo_box.currentText()) == "Input":
@@ -532,6 +572,7 @@ class InputDialog(QtWidgets.QWidget):
             self.port_type = 'output'
         elif str(self.combo_box.currentText()) == "Inout":
             self.port_type = 'inout'
+
 
 class ErrorMessage(QtWidgets.QWidget):
     def __init__(self, error_message):
