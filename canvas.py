@@ -3,9 +3,9 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPolygon
 from PyQt5.QtWidgets import QMenu,  QLabel, QPushButton, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRect
 import re
-
+import copy
 
 class Canvas(QtWidgets.QWidget):
     def __init__(self):
@@ -16,44 +16,50 @@ class Canvas(QtWidgets.QWidget):
         self.rect_list = []
         self.code_string = ""
         self.error = 0
+        self.intersect = 0
         self.forbidden_module_names = ["input", "output", "inout", "module", "endmodule", ""]
 
     # All canvas painting actions are handled here.
     def paintEvent(self, event):
         qp = QtGui.QPainter(self)
-        br = QtGui.QBrush(QtGui.QColor(100, 10, 10, 40))
-        qp.setBrush(br)
 
         for r in self.rect_list:
+            qp.setBrush(QtGui.QBrush(QtGui.QColor(100, 10, 10, 40)))     # module color
             qp.drawRect(QtCore.QRect(r.rect_begin, r.rect_end))  # Draw module rectangle
             qp.drawText((r.rect_begin + r.rect_end) / 2, r.center_text)  # Write the name of module rectangle
 
-            # Draw input ports and their names
             in_order = 0
             out_order = 0
             inout_order = 0
+
+            # Draw input ports and their names
             for i in r.in_port_list:
                 # Write the port name
                 qp.drawText(r.rect_begin + QtCore.QPoint(5, int(r.Tri_In_F / 2 + r.Tri_In_F * in_order)), i.text)
                 in_order = in_order + 1
 
                 polygon = QPolygon(i.points)
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255, 127)))     # input port color
                 qp.drawPolygon(polygon)
 
+            # Draw output ports and their names
             for i in r.out_port_list:
                 # Write the port name
                 qp.drawText(r.rect_end + QtCore.QPoint(int(r.Tri_In_H + 5), int(-(r.rect_end.y() - r.rect_begin.y()) + r.Tri_In_F / 2 + r.Tri_In_F * out_order)), i.text)
                 out_order = out_order + 1
 
                 polygon = QPolygon(i.points)
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255, 127)))     # output port color
                 qp.drawPolygon(polygon)
 
+            # Draw inout ports and their names
             for i in r.inout_port_list:
                 # Write the port name
                 qp.drawText(QtCore.QPoint(int(r.rect_begin.x() + 5), int(r.rect_end.y() - r.Tri_In_F / 2 - r.Tri_In_F * inout_order)), i.text)
                 inout_order = inout_order + 1
 
                 polygon = QPolygon(i.points)
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255, 127)))     # inout port color
                 qp.drawPolygon(polygon)
 
     # When mouse is pressed, the top left corner of the rectangle being drawn is saved
@@ -61,31 +67,36 @@ class Canvas(QtWidgets.QWidget):
         if event.button() == Qt.LeftButton:
             if len(self.rect_list) != 0:
                 for i in self.rect_list:
+                    # Drag condition when the click 10 units inside all the corners
                     if i.rect_begin.x() + 10 <= event.pos().x() <= i.rect_end.x() -10 and i.rect_begin.y() + 10 <= event.pos().y() <= i.rect_end.y() - 10:
                         i.relative_start = event.pos()
                         i.temp_rect_begin = i.rect_begin
                         i.temp_rect_end = i.rect_end
                         i.drag = 1
                         break
+                    # Top left resize when the click inside top left corner and its 10 unit small rectangle
                     elif (i.rect_begin.x() < event.pos().x() < i.rect_begin.x() + 10 and
                           i.rect_begin.y() < event.pos().y() < i.rect_begin.y() + 10):
                         i.rect_begin = event.pos()
                         i.resize = 1
                         break
+                    # Bottom left resize when the click inside bottom left corner and its 10 unit small rectangle
                     elif (i.rect_begin.x() < event.pos().x() < i.rect_begin.x() + 10 and
-                                i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
+                          i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
                         i.rect_begin.setX(event.pos().x())
                         i.rect_end.setY(event.pos().y())
                         i.resize = 2
                         break
+                    # Top right resize when the click inside top right corner and its 10 unit small rectangle
                     elif (i.rect_end.x() - 10 < event.pos().x() < i.rect_end.x() and
-                                i.rect_begin.y() < event.pos().y() < i.rect_begin.y() + 10):
+                          i.rect_begin.y() < event.pos().y() < i.rect_begin.y() + 10):
                         i.rect_begin.setY(event.pos().y())
                         i.rect_end.setX(event.pos().x())
                         i.resize = 3
                         break
+                    # Bottom right resize when the click inside bottom right corner and its 10 unit small rectangle
                     elif (i.rect_end.x() - 10 < event.pos().x() < i.rect_end.x() and
-                                i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
+                          i.rect_end.y() - 10 < event.pos().y() < i.rect_end.y()):
                         i.rect_end = event.pos()
                         i.resize = 4
                         break
@@ -95,39 +106,130 @@ class Canvas(QtWidgets.QWidget):
 
     # When mouse is pressed and moving, the bottom right corner of the rectangle also changes and shown in screen
     def mouseMoveEvent(self, event):
+        self.intersect = 0
         for i in self.rect_list:
+            # Drag condition
             if i.drag == 1:
-                i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
-                i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
-                i.drag_release = 1
-                i.update()
-                self.update()   # To call paintEvent
+                rect_begin_dragged = i.temp_rect_begin + event.pos() - i.relative_start
+                rect_end_dragged = i.temp_rect_end + event.pos() - i.relative_start
+                for j in self.rect_list:
+                    if j != i:
+                        rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                        rect_begin_y = j.rect_begin.y() - 10
+                        rect_width = j.width + 3 * j.Tri_In_H
+                        rect_height = j.height + 20
+                        rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                        rect_dragged = QRect(rect_begin_dragged.x() - 2 * i.Tri_In_H, rect_begin_dragged.y() - 10, i.width + 3 * i.Tri_In_H, i.height + 20)
+                        if rect_temp.intersects(rect_dragged):
+                            self.intersect = 1
+                            break
+
+                if self.intersect == 0:
+                    i.rect_begin = rect_begin_dragged
+                    i.rect_end = rect_end_dragged
+                    i.drag_release = 1
+                    i.update()
+                    self.update()  # To call paintEvent
                 break
+
+            # Top left resize
             elif i.resize == 1:
-                i.rect_begin = event.pos()
-                i.resize_release = 1
-                i.update()
-                self.update()   # To call paintEvent
+                rect_begin_dragged = event.pos()
+                rect_end_dragged = copy.deepcopy(i.rect_end)
+                for j in self.rect_list:
+                    if j != i:
+                        rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                        rect_begin_y = j.rect_begin.y() - 10
+                        rect_width = j.width + 3 * j.Tri_In_H
+                        rect_height = j.height + 20
+                        rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                        rect_dragged = QRect(rect_begin_dragged.x() - 2 * i.Tri_In_H, rect_begin_dragged.y() - 10, i.width + 3 * i.Tri_In_H, i.height + 20)
+                        if rect_temp.intersects(rect_dragged):
+                            self.intersect = 1
+                            break
+
+                if self.intersect == 0:
+                    i.rect_begin = rect_begin_dragged
+                    i.rect_end = rect_end_dragged
+                    i.resize_release = 1
+                    i.update()
+                    self.update()  # To call paintEvent
                 break
+
+            # Bottom left resize
             elif i.resize == 2:
-                i.rect_begin.setX(event.pos().x())
-                i.rect_end.setY(event.pos().y())
-                i.resize_release = 2
-                i.update()
-                self.update()   # To call paintEvent
+                rect_begin_dragged = copy.deepcopy(i.rect_begin)
+                rect_begin_dragged.setX(event.pos().x())
+                rect_end_dragged = copy.deepcopy(i.rect_end)
+                rect_end_dragged.setY(event.pos().y())
+                for j in self.rect_list:
+                    if j != i:
+                        rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                        rect_begin_y = j.rect_begin.y() - 10
+                        rect_width = j.width + 3 * j.Tri_In_H
+                        rect_height = j.height + 20
+                        rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                        rect_dragged = QRect(rect_begin_dragged.x() - 2 * i.Tri_In_H, rect_begin_dragged.y() - 10, i.width + 3 * i.Tri_In_H, i.height + 20)
+                        if rect_temp.intersects(rect_dragged):
+                            self.intersect = 1
+                            break
+
+                if self.intersect == 0:
+                    i.rect_begin = rect_begin_dragged
+                    i.rect_end = rect_end_dragged
+                    i.resize_release = 2
+                    i.update()
+                    self.update()  # To call paintEvent
                 break
+
+            # Top right resize
             elif i.resize == 3:
-                i.rect_begin.setY(event.pos().y())
-                i.rect_end.setX(event.pos().x())
-                i.resize_release = 3
-                i.update()
-                self.update()   # To call paintEvent
+                rect_begin_dragged = copy.deepcopy(i.rect_begin)
+                rect_begin_dragged.setX(event.pos().y())
+                rect_end_dragged = copy.deepcopy(i.rect_end)
+                rect_end_dragged.setY(event.pos().x())
+                for j in self.rect_list:
+                    if j != i:
+                        rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                        rect_begin_y = j.rect_begin.y() - 10
+                        rect_width = j.width + 3 * j.Tri_In_H
+                        rect_height = j.height + 20
+                        rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                        rect_dragged = QRect(rect_begin_dragged.x() - 2 * i.Tri_In_H, rect_begin_dragged.y() - 10, i.width + 3 * i.Tri_In_H, i.height + 20)
+                        if rect_temp.intersects(rect_dragged):
+                            self.intersect = 1
+                            break
+
+                if self.intersect == 0:
+                    i.rect_begin = rect_begin_dragged
+                    i.rect_end = rect_end_dragged
+                    i.resize_release = 3
+                    i.update()
+                    self.update()  # To call paintEvent
                 break
+
+            # Bottom right resize
             elif i.resize == 4:
-                i.rect_end = event.pos()
-                i.resize_release = 4
-                i.update()
-                self.update()   # To call paintEvent
+                rect_begin_dragged = copy.deepcopy(i.rect_begin)
+                rect_end_dragged = event.pos()
+                for j in self.rect_list:
+                    if j != i:
+                        rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                        rect_begin_y = j.rect_begin.y() - 10
+                        rect_width = j.width + 3 * j.Tri_In_H
+                        rect_height = j.height + 20
+                        rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                        rect_dragged = QRect(rect_begin_dragged.x() - 2 * i.Tri_In_H, rect_begin_dragged.y() - 10, i.width + 3 * i.Tri_In_H, i.height + 20)
+                        if rect_temp.intersects(rect_dragged):
+                            self.intersect = 1
+                            break
+
+                if self.intersect == 0:
+                    i.rect_begin = rect_begin_dragged
+                    i.rect_end = rect_end_dragged
+                    i.resize_release = 4
+                    i.update()
+                    self.update()  # To call paintEvent
                 break
             else:
                 pass
@@ -138,42 +240,56 @@ class Canvas(QtWidgets.QWidget):
             if len(self.rect_list) != 0:
                 for i in self.rect_list:
                     if i.drag_release == 1:
-                        i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
-                        i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
+                        if self.intersect == 0:
+                            i.rect_begin = i.temp_rect_begin + event.pos() - i.relative_start
+                            i.rect_end = i.temp_rect_end + event.pos() - i.relative_start
+                            i.update()
+                            self.update()   # To call paintEvent
                         i.drag_release = 0
                         i.drag = 0
-                        i.update()
-                        self.update()   # To call paintEvent
+                        self.intersect = 0
                         break
+                    # Top left resize
                     elif i.resize_release == 1:
-                        i.rect_begin = event.pos()
+                        if self.intersect == 0:
+                            i.rect_begin = event.pos()
+                            i.update()
+                            self.update()   # To call paintEvent
                         i.resize_release = 0
                         i.resize = 0
-                        i.update()
-                        self.update()   # To call paintEvent
+                        self.intersect = 0
                         break
+                    # Bottom left resize
                     elif i.resize_release == 2:
-                        i.rect_begin.setX(event.pos().x())
-                        i.rect_end.setY(event.pos().y())
+                        if self.intersect == 0:
+                            i.rect_begin.setX(event.pos().x())
+                            i.rect_end.setY(event.pos().y())
+                            i.update()
+                            self.update()   # To call paintEvent
                         i.resize_release = 0
                         i.resize = 0
-                        i.update()
-                        self.update()   # To call paintEvent
+                        self.intersect = 0
                         break
+                    # Top right resize
                     elif i.resize_release == 3:
-                        i.rect_begin.setY(event.pos().y())
-                        i.rect_end.setX(event.pos().x())
+                        if self.intersect == 0:
+                            i.rect_begin.setY(event.pos().y())
+                            i.rect_end.setX(event.pos().x())
+                            i.update()
+                            self.update()   # To call paintEvent
                         i.resize_release = 0
                         i.resize = 0
-                        i.update()
-                        self.update()   # To call paintEvent
+                        self.intersect = 0
                         break
+                    # Bottom right resize
                     elif i.resize_release == 4:
-                        i.rect_end = event.pos()
+                        if self.intersect == 0:
+                            i.rect_end = event.pos()
+                            i.update()
+                            self.update()   # To call paintEvent
                         i.resize_release = 0
                         i.resize = 0
-                        i.update()
-                        self.update()   # To call paintEvent
+                        self.intersect = 0
                         break
                     else:
                         pass
@@ -264,22 +380,37 @@ class Canvas(QtWidgets.QWidget):
 
             action = contextMenu.exec_(self.mapToGlobal(event.pos()))
             if action == addModuleAction:
-                tempModule = Module()
-                center_texts = [i.center_text for i in self.rect_list]
-                i = 0
-                while 1:
-                    if 'case_block_' + str(i) not in center_texts:
-                        tempModule.center_text = 'case_block_' + str(i)
-                        tempModule.rect_begin = event.pos()
-                        tempModule.rect_end = event.pos() + QtCore.QPoint(200, 200)
-                        tempModule.update()
-                        self.rect_list.append(tempModule)
-                        self.forbidden_module_names.append(tempModule.center_text)
-                        # To call paintEvent method, update method is run.
-                        # When module is created, to show it on canvas paintEvent must be called
-                        self.update()
+                intersect = 0
+                rect_begin_dragged = event.pos()
+                for j in self.rect_list:
+                    rect_begin_x = j.rect_begin.x() - 2 * j.Tri_In_H
+                    rect_begin_y = j.rect_begin.y() - 10
+                    rect_width = j.width + 3 * j.Tri_In_H
+                    rect_height = j.height + 20
+                    rect_temp = QRect(rect_begin_x, rect_begin_y, rect_width, rect_height)
+                    rect_dragged = QRect(rect_begin_dragged.x() - 2 * j.Tri_In_H, rect_begin_dragged.y() - 10, 200 + 3 * j.Tri_In_H, 200 + 20)
+                    if rect_temp.intersects(rect_dragged):
+                        intersect = 1
                         break
-                    i = i + 1
+
+                if intersect == 0:
+                    tempModule = Module()
+                    i = 0
+                    while 1:
+                        if 'case_block_' + str(i) not in self.forbidden_module_names:
+                            tempModule.center_text = 'case_block_' + str(i)
+                            tempModule.rect_begin = event.pos()
+                            tempModule.rect_end = event.pos() + QtCore.QPoint(200, 200)
+                            tempModule.update()
+                            self.rect_list.append(tempModule)
+                            self.forbidden_module_names.append(tempModule.center_text)
+                            # To call paintEvent method, update method is run.
+                            # When module is created, to show it on canvas paintEvent must be called
+                            self.update()
+                            break
+                        i = i + 1
+                else:
+                    self.myshow = ErrorMessage('Module cannot be created because it is too close to other modules')
 
     def add_input(self, module, text):
         tempClass = Port()
@@ -340,15 +471,19 @@ class Module:
         self.inout_port_list = []
         self.module_string_list = []
         self.forbidden_words = ["input", "output", "inout", "module", "endmodule",""]
+        self.width = 0
+        self.height = 0
 
     def update(self):
+        self.width = self.rect_end.x() - self.rect_begin.x()
+        self.height = self.rect_end.y() - self.rect_begin.y()
         temp_left = self.Tri_In_F
         temp_right = self.Tri_In_F
         if not (self.rect_end.y() - self.rect_begin.y() - 10 < self.Tri_In_F * (len(self.in_port_list) + len(self.inout_port_list)) + 5 < self.rect_end.y() - self.rect_begin.y() + 10):
-            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 5))
+            temp_left = int((self.rect_end.y() - self.rect_begin.y()) / ((len(self.in_port_list) + len(self.inout_port_list)) + 10))
 
         if not (self.rect_end.y() - self.rect_begin.y() - 10 < self.Tri_In_F * len(self.out_port_list) + 5 < self.rect_end.y() - self.rect_begin.y() + 10):
-            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 5))
+            temp_right = int((self.rect_end.y() - self.rect_begin.y()) / (len(self.out_port_list) + 10))
 
         self.Tri_In_F = min(temp_left, temp_right)
         self.Tri_In_H = int(self.Tri_In_F / self.Tri_coef)
