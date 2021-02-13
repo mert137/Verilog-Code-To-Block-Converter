@@ -122,7 +122,7 @@ class MainWindow(QWidget):
                 result = re.split('(?:\(|\040\()\Z', result[0])       # Split end
                 if "" in result:
                     result.remove("")
-                    if not (re.search('\W', result[0]) or (result[0] not in self.canvas.forbidden_module_names)):  # Search for non-word character
+                    if not (re.search('\W', result[0]) or (result[0] in self.canvas.forbidden_module_names)):  # Search for non-word character
                         tempModule = Module()
                         tempModule.rect_begin = QtCore.QPoint(100, 100)
                         tempModule.rect_end = QtCore.QPoint(300, 300)
@@ -141,24 +141,43 @@ class MainWindow(QWidget):
                                 result = re.split('\A(?:input |output |inout )', result[0])
                                 if "" in result:
                                     result.remove("")
-                                    if not (re.search('\W', result[0]) or result[0] == ""):  # Search for non-word character
-                                        x = [s.strip() for s in lines[i].split(' ')]
-                                        if 'input' == x[0]:
-                                            if result[0] not in tempModule.forbidden_words:
+                                    x = [s.strip() for s in lines[i].split(' ')]
+                                    if 'input' == x[0]:
+                                        result_2 = re.split('(\[\d:0\])\Z', result[0])  # Split end
+                                        while "" in result_2:
+                                            result_2.remove("")
+                                        if not (re.search('\W', result_2[0])):  # Search for non-word character
+                                            if result_2[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_input(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
                                                 self.canvas.error = 1
                                                 break
-                                        elif 'output' == x[0]:
-                                            if result[0] not in tempModule.forbidden_words:
+                                        else:
+                                            print('error')
+                                            self.canvas.error = 1
+                                            break
+                                    elif 'output' == x[0]:
+                                        result_2 = re.split('(\[\d:0\])\Z', result[0])  # Split end
+                                        while "" in result_2:
+                                            result_2.remove("")
+                                        if not (re.search('\W', result_2[0])):  # Search for non-word character
+                                            if result_2[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_output(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
                                                 self.canvas.error = 1
                                                 break
-                                        elif 'inout' == x[0]:
-                                            if result[0] not in tempModule.forbidden_words:
+                                        else:
+                                            print('error')
+                                            self.canvas.error = 1
+                                            break
+                                    elif 'inout' == x[0]:
+                                        result_2 = re.split('(\[\d:0\])\Z', result[0])  # Split end
+                                        while "" in result_2:
+                                            result_2.remove("")
+                                        if not (re.search('\W', result_2[0])):  # Search for non-word character
+                                            if result_2[0] not in tempModule.forbidden_words:
                                                 self.canvas.add_inout(temp_rect_list[-1], result[0])
                                             else:
                                                 print('error')
@@ -169,7 +188,11 @@ class MainWindow(QWidget):
                                             self.canvas.error = 1
                                             break
                                     else:
+                                        print('error')
                                         self.canvas.error = 1
+                                        break
+                                    #else:
+                                    #    self.canvas.error = 1
                             else:
                                 i = i + 1
                                 x = [s.strip() for s in lines[i].split(' ')]
